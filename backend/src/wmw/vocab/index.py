@@ -47,7 +47,7 @@ class VocabIndex:
         idx = self._word_to_idx.get(word)
         if idx is None:
             return None
-        return self._index.reconstruct(idx)
+        return self._index.reconstruct(idx)  # ty: ignore[missing-argument]
 
     def nearest(
         self,
@@ -65,10 +65,10 @@ class VocabIndex:
         fetch_k = k + len(exclude) + 5
 
         query = vector.reshape(1, -1).astype(np.float32)
-        scores, indices = self._index.search(query, fetch_k)
+        scores, indices = self._index.search(query, fetch_k)  # ty: ignore[missing-argument]
 
         results = []
-        for score, idx in zip(scores[0], indices[0]):
+        for score, idx in zip(scores[0], indices[0], strict=False):
             if idx < 0:
                 continue
             word = self._words[idx]
@@ -90,9 +90,7 @@ class VocabIndex:
         rng = rng or np.random.default_rng()
 
         if categories:
-            eligible = [
-                i for i, cat in enumerate(self._categories) if cat in categories
-            ]
+            eligible = [i for i, cat in enumerate(self._categories) if cat in categories]
         else:
             eligible = list(range(len(self._words)))
 

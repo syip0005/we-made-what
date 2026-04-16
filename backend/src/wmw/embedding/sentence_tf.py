@@ -20,7 +20,7 @@ class SentenceTransformerProvider:
             device=device,
             truncate_dim=truncate_dim,
         )
-        self._dimension = truncate_dim or self._model.get_sentence_embedding_dimension()
+        self._dimension: int = truncate_dim or self._model.get_embedding_dimension() or 512
 
     @property
     def dimension(self) -> int:

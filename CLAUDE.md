@@ -38,6 +38,15 @@ uv sync --extra dev
    uv run python scripts/evaluate-model.py
    ```
 
+### Lint, Format & Type Check
+
+```bash
+cd backend
+uv run ruff check --fix src/ tests/
+uv run ruff format src/ tests/
+uv run ty check src/
+```
+
 ### Run Tests
 
 ```bash
@@ -62,6 +71,8 @@ uv run uvicorn wmw.main:app --reload
 ## Conventions
 
 - Backend uses `uv` for package management
+- Linting: `ruff` (lint + format), type checking: `ty` (by Astral)
 - All scripts run from repo root: `uv run python scripts/<script>.py`
 - Generated data goes in `backend/src/wmw/data/` (gitignored)
 - Tests use fake providers with deterministic random vectors (no GPU needed)
+- Use `/git-pr` skill before creating pull requests

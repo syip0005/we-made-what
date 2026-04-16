@@ -50,10 +50,7 @@ class WordMixer:
         if vec_a is None or vec_b is None:
             return None
 
-        if operation == "add":
-            result_vec = vec_a + vec_b
-        else:
-            result_vec = vec_a - vec_b
+        result_vec = vec_a + vec_b if operation == "add" else vec_a - vec_b
 
         # L2-normalize the result before searching
         norm = np.linalg.norm(result_vec)
@@ -62,9 +59,7 @@ class WordMixer:
         result_vec = result_vec / norm
 
         # Find nearest, excluding the input words
-        candidates = self._index.nearest(
-            result_vec, k=5, exclude={word_a, word_b}
-        )
+        candidates = self._index.nearest(result_vec, k=5, exclude={word_a, word_b})
 
         if not candidates:
             return None

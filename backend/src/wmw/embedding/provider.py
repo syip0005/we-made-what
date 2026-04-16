@@ -14,7 +14,7 @@ class EmbeddingProvider(Protocol):
         """Dimensionality of the embedding vectors."""
         ...
 
-    def embed(self, texts: list[str]) -> np.ndarray:
+    def embed(self, texts: list[str], batch_size: int = 256) -> np.ndarray:
         """Embed a batch of texts. Returns shape (len(texts), dimension)."""
         ...
 

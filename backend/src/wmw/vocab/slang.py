@@ -13,8 +13,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 DATASET_URL = (
-    "https://huggingface.co/datasets/MLBtrio/genz-slang-dataset"
-    "/resolve/main/all_slangs.csv"
+    "https://huggingface.co/datasets/MLBtrio/genz-slang-dataset/resolve/main/all_slangs.csv"
 )
 
 
@@ -32,9 +31,7 @@ def _is_useful_slang(slang: str, description: str) -> bool:
     if description.lstrip().startswith(("To ", "to ")):
         return False
     # Skip short all-uppercase acronyms — they're abbreviations, not concepts
-    if slang.isupper() and len(slang) <= 4:
-        return False
-    return True
+    return not (slang.isupper() and len(slang) <= 4)
 
 
 def _normalize_slang(text: str) -> str | None:

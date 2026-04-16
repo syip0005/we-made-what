@@ -36,11 +36,9 @@ def build_index(
     norms = np.where(norms == 0, 1, norms)
     all_embeddings = all_embeddings / norms
 
-    logger.info(
-        f"Building FAISS index: {len(words)} vectors, {provider.dimension}d..."
-    )
+    logger.info(f"Building FAISS index: {len(words)} vectors, {provider.dimension}d...")
     index = faiss.IndexFlatIP(provider.dimension)
-    index.add(all_embeddings)
+    index.add(all_embeddings)  # ty: ignore[missing-argument]
 
     return VocabIndex(words=words, categories=categories, index=index)
 
@@ -69,10 +67,7 @@ def load_all_entries(data_dir: Path, min_zipf: float = 2.0) -> list[dict]:
         logger.info(f"  Added {added} unique entries")
 
     if not list(raw_dir.glob("*.json")):
-        logger.info(
-            "No cached data found in data/raw/. "
-            "Run scripts/fetch-popculture.py first."
-        )
+        logger.info("No cached data found in data/raw/. Run scripts/fetch-popculture.py first.")
 
     logger.info(f"Total vocabulary: {len(entries)} entries")
     return entries

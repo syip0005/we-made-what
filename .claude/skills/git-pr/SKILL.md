@@ -1,13 +1,26 @@
 ---
 name: git-pr
-description: Pre-PR checklist — run tests, update docs/CLAUDE.md, then create the PR.
+description: Pre-PR checklist — lint, type check, test, update docs, then create the PR.
 ---
 
 # Git PR
 
 Run through the pre-PR checklist before creating the pull request.
 
-## Phase 1: Tests
+## Phase 1: Lint, Format & Type Check
+
+Run all three and fix any errors:
+
+```bash
+cd backend
+uv run ruff check --fix src/ tests/
+uv run ruff format src/ tests/
+uv run ty check src/
+```
+
+Stage any fixes as a separate commit before continuing.
+
+## Phase 2: Tests
 
 Run backend tests and fix any failures:
 
@@ -15,7 +28,7 @@ Run backend tests and fix any failures:
 cd backend && uv run pytest tests/ -v
 ```
 
-## Phase 2: Update CLAUDE.md
+## Phase 3: Update CLAUDE.md
 
 Check if any of the following changed in this branch:
 
@@ -26,7 +39,7 @@ Check if any of the following changed in this branch:
 
 Update `CLAUDE.md` at the repo root if needed.
 
-## Phase 3: Final commit & PR
+## Phase 4: Final commit & PR
 
 1. Stage and commit any remaining changes.
 2. Push the branch.
