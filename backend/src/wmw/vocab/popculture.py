@@ -18,7 +18,9 @@ WIKIDATA_ENDPOINT = "https://query.wikidata.org/sparql"
 # Wikidata SPARQL queries for different pop culture categories.
 # Q-codes: Q11424=film, Q5398426=TV series, Q33999=actor, Q177220=singer,
 # Q639669=musician, Q7889=video game, Q95074=fictional character,
-# Q63952888=anime series, Q21198342=manga series, Q1569167=anime character
+# Q63952888=anime series, Q21198342=manga series, Q1569167=anime character,
+# Q2927074=internet meme, Q1068038=internet phenomenon, Q184130=neologism,
+# Q1580752=catchphrase, Q1752346=youth subculture
 WIKIDATA_QUERIES: dict[str, tuple[str, str]] = {
     "film": (
         "film",
@@ -104,6 +106,57 @@ WIKIDATA_QUERIES: dict[str, tuple[str, str]] = {
           SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
         }
         LIMIT 15000
+        """,
+    ),
+    "internet_meme": (
+        "meme",
+        """
+        SELECT DISTINCT ?itemLabel WHERE {
+          ?item wdt:P31 wd:Q2927074.
+          SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+        }
+        LIMIT 5000
+        """,
+    ),
+    "internet_phenomenon": (
+        "meme",
+        """
+        SELECT DISTINCT ?itemLabel WHERE {
+          ?item wdt:P31 wd:Q1068038.
+          SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+        }
+        LIMIT 5000
+        """,
+    ),
+    "neologism": (
+        "slang",
+        """
+        SELECT DISTINCT ?itemLabel WHERE {
+          ?item wdt:P31 wd:Q184130.
+          SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+        }
+        LIMIT 5000
+        """,
+    ),
+    "catchphrase": (
+        "meme",
+        """
+        SELECT DISTINCT ?itemLabel WHERE {
+          ?item wdt:P31 wd:Q1580752.
+          SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+        }
+        LIMIT 5000
+        """,
+    ),
+    "subculture": (
+        "culture",
+        """
+        SELECT DISTINCT ?itemLabel WHERE {
+          {?item wdt:P31 wd:Q1752346.}
+          UNION {?item wdt:P31 wd:Q264965.}
+          SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+        }
+        LIMIT 5000
         """,
     ),
 }
