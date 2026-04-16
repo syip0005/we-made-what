@@ -49,11 +49,26 @@ WIKIDATA_QUERIES: dict[str, tuple[str, str]] = {
         LIMIT 10000
         """,
     ),
-    "tv": (
+    "tv_recent": (
         "tv",
         """
         SELECT DISTINCT ?itemLabel WHERE {
           ?item wdt:P31 wd:Q5398426.
+          ?item wdt:P580|wdt:P577 ?date.
+          FILTER(YEAR(?date) >= 2000)
+          ?article schema:about ?item; schema:isPartOf <https://en.wikipedia.org/>.
+          SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+        }
+        LIMIT 10000
+        """,
+    ),
+    "tv_classic": (
+        "tv",
+        """
+        SELECT DISTINCT ?itemLabel WHERE {
+          ?item wdt:P31 wd:Q5398426.
+          ?item wdt:P580|wdt:P577 ?date.
+          FILTER(YEAR(?date) < 2000)
           ?article schema:about ?item; schema:isPartOf <https://en.wikipedia.org/>.
           SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
         }
