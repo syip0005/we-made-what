@@ -1,16 +1,16 @@
 """Fetch pop culture entities from Wikidata SPARQL.
 
-All categories (films, TV, actors, musicians, video games, fictional characters,
-internet memes, subcultures) are sourced from Wikidata — single source, no API keys.
-
-Results are filtered to English-only by requiring an English Wikipedia article.
+Categories: films, TV, actors, musicians, video games, fictional characters,
+internet memes, subcultures, brands. English-only via Wikipedia article filter.
 
 Each entry is {"word": str, "category": str}.
 """
 
+import json
 import logging
 import re
 import time
+import unicodedata
 
 import httpx
 
@@ -20,8 +20,13 @@ WIKIDATA_ENDPOINT = "https://query.wikidata.org/sparql"
 
 WIKIDATA_USER_AGENT = "WeMadeWhat/0.1 (https://github.com/syip0005/we-made-what) httpx"
 
-# All queries require an English Wikipedia article to ensure English labels.
-# This filters out non-English entries that would be noise in the game.
+# Simple, reliable queries. Each requires an English Wikipedia article.
+# Q-codes: Q11424=film, Q5398426=TV series, Q33999=actor,
+# Q177220=singer, Q639669=musician, Q7889=video game,
+# Q95074=fictional character, Q2927074=internet meme,
+# Q1752346=youth subculture, Q264965=subculture,
+# Q431289=brand, Q167270=trademark, Q891723=public company,
+# Q3220391=social networking service
 WIKIDATA_QUERIES: dict[str, tuple[str, str]] = {
     "film_recent": (
         "film",
@@ -144,6 +149,40 @@ WIKIDATA_QUERIES: dict[str, tuple[str, str]] = {
         LIMIT 5000
         """,
     ),
+    "brand": (
+        "brand",
+        """
+        SELECT DISTINCT ?itemLabel WHERE {
+          {?item wdt:P31 wd:Q431289.}
+          UNION {?item wdt:P31 wd:Q167270.}
+          ?article schema:about ?item; schema:isPartOf <https://en.wikipedia.org/>.
+          SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+        }
+        LIMIT 10000
+        """,
+    ),
+    "company": (
+        "brand",
+        """
+        SELECT DISTINCT ?itemLabel WHERE {
+          ?item wdt:P31 wd:Q891723.
+          ?article schema:about ?item; schema:isPartOf <https://en.wikipedia.org/>.
+          SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+        }
+        LIMIT 5000
+        """,
+    ),
+    "social_media": (
+        "brand",
+        """
+        SELECT DISTINCT ?itemLabel WHERE {
+          ?item wdt:P31 wd:Q3220391.
+          ?article schema:about ?item; schema:isPartOf <https://en.wikipedia.org/>.
+          SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
+        }
+        LIMIT 5000
+        """,
+    ),
 }
 
 # Common Unicode → ASCII replacements
@@ -158,7 +197,6 @@ _UNICODE_REPLACEMENTS = {
     "\u00a0": " ",  # non-breaking space
 }
 
-# Regex to detect non-English entries after normalization
 _NON_ENGLISH_RE = re.compile(r"[^\x00-\x7F]")
 
 
@@ -167,23 +205,47 @@ def _normalize_entry(text: str) -> str | None:
     text = text.strip()
     if not text:
         return None
-    # Skip Wikidata Q-IDs that weren't resolved to labels
     if text.startswith("Q") and text[1:].isdigit():
         return None
-    # Skip entries that are too long (likely descriptions, not names)
     if len(text) > 60:
         return None
     # Normalize common Unicode punctuation to ASCII
     for unicode_char, ascii_char in _UNICODE_REPLACEMENTS.items():
         text = text.replace(unicode_char, ascii_char)
-    # Skip entries with remaining non-ASCII characters (non-English)
+    # Strip accents: Beyoncé → Beyonce
+    nfkd = unicodedata.normalize("NFKD", text)
+    text = "".join(c for c in nfkd if not unicodedata.combining(c))
+    # Reject remaining non-ASCII (non-English)
     if _NON_ENGLISH_RE.search(text):
         return None
-    # Skip single-character entries
     if len(text) < 2:
         return None
-    # Lowercase for consistency
     return text.lower()
+
+
+def _extract_labels(text: str) -> list[str]:
+    """Extract itemLabel values from Wikidata JSON, even if malformed.
+
+    Wikidata responses often contain unescaped quotes or control chars
+    that break json.loads(). This regex approach extracts labels directly.
+    """
+    # Strip control chars
+    cleaned = re.sub(r"[\x00-\x1f\x7f]", "", text)
+
+    # Try normal JSON parsing first
+    try:
+        data = json.loads(cleaned)
+        return [
+            b.get("itemLabel", {}).get("value", "")
+            for b in data.get("results", {}).get("bindings", [])
+        ]
+    except json.JSONDecodeError:
+        pass
+
+    # Fallback: regex extract all itemLabel values
+    # Matches: "value" : "Some Label" after "itemLabel"
+    pattern = r'"itemLabel"\s*:\s*\{[^}]*"value"\s*:\s*"([^"]*)"'
+    return re.findall(pattern, cleaned)
 
 
 def fetch_all_popculture() -> list[dict]:
@@ -205,20 +267,10 @@ def fetch_all_popculture() -> list[dict]:
                     timeout=120,
                 )
                 resp.raise_for_status()
-                # Wikidata sometimes returns malformed JSON (control chars,
-                # unescaped quotes in labels). Clean aggressively.
-                import json
-
-                cleaned = re.sub(r"[\x00-\x1f\x7f]", "", resp.text)
-                try:
-                    data = json.loads(cleaned)
-                except json.JSONDecodeError:
-                    # Last resort: try parsing with strict=False
-                    data = json.loads(cleaned, strict=False)  # type: ignore[call-overload]
+                labels = _extract_labels(resp.text)
 
                 count = 0
-                for binding in data.get("results", {}).get("bindings", []):
-                    label = binding.get("itemLabel", {}).get("value", "")
+                for label in labels:
                     normalized = _normalize_entry(label)
                     if normalized and normalized not in seen:
                         seen.add(normalized)
@@ -230,6 +282,6 @@ def fetch_all_popculture() -> list[dict]:
                 logger.warning(f"  Failed to fetch {query_name}: {e}")
 
             # Be polite to Wikidata
-            time.sleep(2)
+            time.sleep(5)
 
     return results
