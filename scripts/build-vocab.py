@@ -11,6 +11,7 @@ Environment variables:
     WMW_EMBEDDING_MODEL  - Model name (default: Qwen/Qwen3-Embedding-8B)
     WMW_EMBEDDING_DEVICE - Device (default: cuda)
     WMW_EMBEDDING_DIM    - Matryoshka dimension (default: 512)
+    WMW_EMBEDDING_QUANTIZATION - "4bit", "8bit", or unset for full precision (default: 4bit)
     WMW_MIN_WORD_ZIPF    - Min zipf frequency for English words (default: 2.0)
 """
 
@@ -36,6 +37,7 @@ def main():
     logger.info(f"Model: {settings.embedding_model}")
     logger.info(f"Device: {settings.embedding_device}")
     logger.info(f"Dimensions: {settings.embedding_dim}")
+    logger.info(f"Quantization: {settings.embedding_quantization or 'none (full precision)'}")
     logger.info(f"Min zipf: {settings.min_word_zipf}\n")
 
     # Load all word entries
@@ -47,6 +49,7 @@ def main():
         model_name=settings.embedding_model,
         device=settings.embedding_device,
         truncate_dim=settings.embedding_dim,
+        quantization=settings.embedding_quantization,
     )
     logger.info(f"Model loaded. Dimension: {provider.dimension}\n")
 

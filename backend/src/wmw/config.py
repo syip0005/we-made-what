@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     embedding_model: str = "Qwen/Qwen3-Embedding-8B"
     embedding_device: str = "cuda"
     embedding_dim: int = 512  # Matryoshka truncation (Qwen3-Embedding supports 32-4096)
+    embedding_quantization: str | None = "4bit"  # "4bit", "8bit", or None for full precision
 
     # Vocabulary
     data_dir: Path = Path(__file__).parent / "data"
