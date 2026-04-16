@@ -15,6 +15,7 @@ dependencies = [
     "nltk>=3.9.0",
     "httpx>=0.28.0",
     "websockets>=15.0",
+    "pyarrow>=20.0.0",
 ]
 
 [project.optional-dependencies]

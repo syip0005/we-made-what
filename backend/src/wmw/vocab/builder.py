@@ -52,25 +52,26 @@ def load_all_entries(data_dir: Path, min_zipf: float = 2.0) -> list[dict]:
     entries = load_english_words(min_zipf=min_zipf)
     logger.info(f"Loaded {len(entries)} English words")
 
-    # Load cached pop culture data if available
+    # Load cached data files from raw/ directory
     raw_dir = data_dir / "raw"
-    popculture_path = raw_dir / "popculture.json"
-    if popculture_path.exists():
-        pop_entries = json.loads(popculture_path.read_text())
-        logger.info(f"Loaded {len(pop_entries)} pop culture entries from cache")
+    seen = {e["word"] for e in entries}
 
-        # Deduplicate against English words
-        seen = {e["word"] for e in entries}
+    for source_file in sorted(raw_dir.glob("*.json")):
+        extra_entries = json.loads(source_file.read_text())
+        logger.info(f"Loaded {len(extra_entries)} entries from {source_file.name}")
+
         added = 0
-        for entry in pop_entries:
+        for entry in extra_entries:
             if entry["word"] not in seen:
                 seen.add(entry["word"])
                 entries.append(entry)
                 added += 1
-        logger.info(f"Added {added} unique pop culture entries")
-    else:
+        logger.info(f"  Added {added} unique entries")
+
+    if not list(raw_dir.glob("*.json")):
         logger.info(
-            "No pop culture cache found. Run scripts/fetch-popculture.py first."
+            "No cached data found in data/raw/. "
+            "Run scripts/fetch-popculture.py first."
         )
 
     logger.info(f"Total vocabulary: {len(entries)} entries")
