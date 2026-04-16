@@ -206,7 +206,8 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# WMW data (generated at runtime)
+# WMW models and data (runtime)
+models/
 backend/src/wmw/data/*.index
 backend/src/wmw/data/*.json
 backend/src/wmw/data/raw/*.json

@@ -1,12 +1,12 @@
 # We Made What
 
-Word-mixing web game powered by embedding vector arithmetic. Combine and subtract words to discover new ones (like InfiniteCraft).
+Word-mixing web game powered by LLM word combination. Combine and subtract words to discover new ones (like InfiniteCraft).
 
 ## Project Structure
 
-- `backend/` — Python 3.13 + FastAPI + sentence-transformers + FAISS
+- `backend/` — Python 3.13 + FastAPI + llama-cpp-python
 - `frontend/` — (coming soon) React 19 + TypeScript + Vite
-- `scripts/` — Vocabulary build scripts
+- `models/` — GGUF model files (gitignored)
 - `plans/` — Architecture documentation
 
 ## Backend Setup
@@ -16,27 +16,27 @@ cd backend
 uv sync --extra dev
 ```
 
-### Build the vocabulary index
+### Download the model
 
-1. Fetch pop culture + slang data (slow, rate-limited):
-   ```bash
-   uv run python scripts/fetch-popculture.py
-   ```
+Download Gemma-4-E4B-Uncensored Q4_K_M GGUF (~5GB):
 
-2. Build FAISS index (requires GPU for embedding model):
-   ```bash
-   uv run python scripts/build-vocab.py
-   ```
+```bash
+mkdir -p models
+uv pip install huggingface-hub
+uv run python -c "
+from huggingface_hub import hf_hub_download
+hf_hub_download(
+    repo_id='HauhauCS/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive',
+    filename='Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf',
+    local_dir='models',
+)
+"
+```
 
-   Environment variables:
-   - `WMW_EMBEDDING_MODEL` — Model name (default: `Qwen/Qwen3-Embedding-8B`)
-   - `WMW_EMBEDDING_DEVICE` — `cuda` or `cpu` (default: `cuda`)
-   - `WMW_EMBEDDING_DIM` — Matryoshka dimension (default: `512`)
-
-3. Evaluate word arithmetic quality:
-   ```bash
-   uv run python scripts/evaluate-model.py
-   ```
+Set the model path:
+```bash
+export WMW_MODEL_PATH=models/Gemma-4-E4B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf
+```
 
 ### Lint, Format & Type Check
 
@@ -63,16 +63,15 @@ uv run uvicorn wmw.main:app --reload
 
 ## Key Architecture
 
-- **Embedding provider**: Swappable via `EmbeddingProvider` protocol (`backend/src/wmw/embedding/provider.py`)
-- **Vocabulary index**: FAISS `IndexFlatIP` with L2-normalized vectors for cosine similarity
-- **Word mixer**: Vector arithmetic (add/subtract) with input exclusion
-- **Vocab sources**: NLTK nouns (WordNet-filtered), Wikidata SPARQL (pop culture, memes, subcultures), HuggingFace (Gen-Z slang)
+- **LLM mixer**: Prompts a local LLM (Gemma-4-E4B via llama-cpp-python) to creatively combine/subtract words
+- **Result caching**: Same word combination always returns the same result
+- **LLM provider**: Swappable via `LLMProvider` protocol (`backend/src/wmw/llm/provider.py`)
 
 ## Conventions
 
 - Backend uses `uv` for package management
 - Linting: `ruff` (lint + format), type checking: `ty` (by Astral)
-- All scripts run from repo root: `uv run python scripts/<script>.py`
 - Generated data goes in `backend/src/wmw/data/` (gitignored)
-- Tests use fake providers with deterministic random vectors (no GPU needed)
+- Model files go in `models/` (gitignored)
+- Tests use fake LLM providers with deterministic responses (no GPU needed)
 - Use `/git-pr` skill before creating pull requests

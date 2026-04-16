@@ -1,55 +1,65 @@
 """Tests for WordMixer."""
 
-from wmw.engine.mixer import WordMixer
-from wmw.vocab.index import VocabIndex
+from wmw.engine.mixer import WordMixer, _clean_result
 
 
-def test_combine_returns_result(sample_vocab: VocabIndex):
-    mixer = WordMixer(sample_vocab)
+def test_combine_returns_result(fake_llm):
+    mixer = WordMixer(fake_llm)
     result = mixer.combine("fire", "water")
-    assert result is not None
     assert result.operation == "add"
     assert result.inputs == ("fire", "water")
-    assert result.result not in ("fire", "water")  # inputs excluded
-    assert 0 <= result.score <= 1.0
-    assert isinstance(result.category, str)
+    assert result.result == "steam"
 
 
-def test_subtract_returns_result(sample_vocab: VocabIndex):
-    mixer = WordMixer(sample_vocab)
-    result = mixer.subtract("king", "queen")
-    assert result is not None
+def test_subtract_returns_result(fake_llm):
+    mixer = WordMixer(fake_llm)
+    result = mixer.subtract("king", "man")
     assert result.operation == "subtract"
-    assert result.inputs == ("king", "queen")
-    assert result.result not in ("king", "queen")
+    assert result.inputs == ("king", "man")
+    assert result.result  # some non-empty result
 
 
-def test_combine_has_alternatives(sample_vocab: VocabIndex):
-    mixer = WordMixer(sample_vocab)
-    result = mixer.combine("fire", "water")
-    assert result is not None
-    assert len(result.alternatives) > 0
-    for word, category, score in result.alternatives:
-        assert isinstance(word, str)
-        assert isinstance(category, str)
-        assert isinstance(score, float)
+def test_combine_caches_results(fake_llm):
+    mixer = WordMixer(fake_llm)
+    r1 = mixer.combine("fire", "water")
+    r2 = mixer.combine("fire", "water")
+    assert r1.result == r2.result
+    assert mixer.cache_size == 1
 
 
-def test_combine_unknown_word(sample_vocab: VocabIndex):
-    mixer = WordMixer(sample_vocab)
-    result = mixer.combine("fire", "nonexistent")
-    assert result is None
+def test_cache_is_case_insensitive(fake_llm):
+    mixer = WordMixer(fake_llm)
+    r1 = mixer.combine("Fire", "Water")
+    r2 = mixer.combine("fire", "water")
+    assert r1.result == r2.result
+    assert mixer.cache_size == 1
 
 
-def test_subtract_unknown_word(sample_vocab: VocabIndex):
-    mixer = WordMixer(sample_vocab)
-    result = mixer.subtract("nonexistent", "water")
-    assert result is None
+def test_combine_and_subtract_cache_separately(fake_llm):
+    mixer = WordMixer(fake_llm)
+    mixer.combine("fire", "water")
+    mixer.subtract("fire", "water")
+    assert mixer.cache_size == 2
 
 
-def test_combine_same_word(sample_vocab: VocabIndex):
-    mixer = WordMixer(sample_vocab)
-    result = mixer.combine("fire", "fire")
-    assert result is not None
-    # Result should not be "fire" (excluded)
-    assert result.result != "fire"
+def test_clean_result_basic():
+    assert _clean_result("Steam") == "steam"
+    assert _clean_result("  Steam  ") == "steam"
+
+
+def test_clean_result_strips_quotes():
+    assert _clean_result('"steam"') == "steam"
+    assert _clean_result("**steam**") == "steam"
+
+
+def test_clean_result_takes_first_line():
+    assert _clean_result("steam\nsome explanation") == "steam"
+
+
+def test_clean_result_truncates_long():
+    assert _clean_result("one two three four five") == "one two three"
+
+
+def test_clean_result_fallback():
+    assert _clean_result("") == "nothing"
+    assert _clean_result("   ") == "nothing"

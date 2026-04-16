@@ -1,20 +1,11 @@
-from pathlib import Path
-
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # Embedding model
-    embedding_model: str = "Qwen/Qwen3-Embedding-8B"
-    embedding_device: str = "cuda"
-    embedding_dim: int = 512  # Matryoshka truncation (Qwen3-Embedding supports 32-4096)
-    embedding_quantization: str | None = "4bit"  # "4bit", "8bit", or None for full precision
-
-    # Vocabulary
-    data_dir: Path = Path(__file__).parent / "data"
-    vocab_index_path: Path = Path(__file__).parent / "data" / "vocab.index"
-    vocab_meta_path: Path = Path(__file__).parent / "data" / "vocab.json"
-    min_word_zipf: float = 2.0  # wordfreq zipf threshold (2.0 ≈ top ~50k words)
+    # LLM model (GGUF file path)
+    model_path: str = ""  # path to .gguf file
+    model_gpu_layers: int = -1  # -1 = all layers on GPU
+    model_ctx_size: int = 2048
 
     # Game
     default_time_limit: int = 120
